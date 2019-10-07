@@ -1,0 +1,46 @@
+{
+  "env": {
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 9,
+    "sourceType": "module"
+  },
+  "extends": "eslint:recommended",
+  "rules": {
+    
+    // linting
+    "no-console": "off",
+    "no-unused-vars": "warn",
+
+    // styles
+    "indent": [
+      "error",
+      2, 
+      {
+        "SwitchCase": 1,
+        "VariableDeclarator": 1,
+        "outerIIFEBody": 1,
+        "MemberExpression": 0,
+        "CallExpression": {
+          "arguments": 1
+        },
+        "ArrayExpression": 1,
+        "ObjectExpression": 1
+      }
+    ],
+    "linebreak-style": "off",
+    "quotes": [
+      "error",
+      "single"
+    ],
+    "semi": [
+      "error",
+      "always"
+    ]
+    
+  },
+  "globals": {
+    "Promise": "readonly"
+  }
+}

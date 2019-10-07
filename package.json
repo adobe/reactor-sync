@@ -1,0 +1,40 @@
+{
+  "name": "@adobe/reactor-sync",
+  "version": "0.1.0",
+  "description": "Command line tool for syncing data to and from Adobe Launch to a local directory.",
+  "author": {
+    "name": "Adobe Systems",
+    "url": "http://adobe.com",
+    "email": "bbythewa@adobe.com"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:adobe/reactor-sync.git"
+  },
+  "keywords": [
+    "launch",
+    "reactor",
+    "sync"
+  ],
+  "bin": {
+    "reactor-sync": "./bin/index.js"
+  },
+  "scripts": {
+    "eslint": "./node_modules/.bin/eslint ."
+  },
+  "dependencies": {
+    "@adobe/reactor-sdk": "^1.0.5",
+    "chalk": "^2.4.2",
+    "jwt-simple": "^0.5.6",
+    "ora": "^3.4.0",
+    "request": "^2.88.0",
+    "request-debug": "^0.2.0",
+    "request-promise-native": "^1.0.7",
+    "sanitize-filename": "^1.6.1",
+    "yargs": "^11.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0"
+  }
+}
