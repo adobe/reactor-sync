@@ -34,9 +34,9 @@ async function checkAccessToken(args) {
 
 function checkEnvironment(args) {
   if (!args.environment) 
-    throw Error('no "environment" property.');
+    console.error('No "environment" property.');
   if (!args.environment.reactorUrl)
-    throw Error('no "environment.reactorUrl" property.');
+    console.error('No "environment.reactorUrl" property.');
   return args.environment;
 }
 
@@ -68,13 +68,13 @@ async function updateResource(reactor, resourceType, local) {
     type: local.type,
     attributes: local.attributes
   })).data;
-  maybeRevise(resourceType, reactor, local);
+  maybeRevise(resourceName, reactor, local);
   return update;
 }
 
-async function maybeRevise(resource, reactor, local) {
-  if (resource === ('Extension' || 'DataElement'))
-    return await reactor.reviseExtension(local.id);
+async function maybeRevise(resourceName, reactor, local) {
+  if (resourceName === ('Extension' || 'DataElement'))
+    return await reactor[`revise${resourceName}`](local.id);
 }
 
 function toMethodName(string) {
