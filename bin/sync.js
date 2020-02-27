@@ -44,7 +44,7 @@ async function getReactor(settings) {
   if (!settings.reactor)
     return await new Reactor(settings.accessToken, {
       reactorUrl: settings.environment.reactorUrl,
-      enableLogging: false // turn true to help debug
+      enableLogging: true // turn true to help debug
     });
   return settings.reactor;
 }
@@ -56,14 +56,33 @@ function shouldSync(args) {
   );
 }
 
+async function updateExtension(reactor, local) {
+  return (await reactor.updateExtension(
+    local.id,
+    { data: {
+      id: local.id,
+      type: local.type,
+      attributes: local.attributes,
+      relationships: local.relationships 
+    }})).data;
+}
 
-async function updateResource(reactor, resourceType, local) {
-  const resourceName = toMethodName(resourceType);
-  const update = (await reactor[`update${resourceName}`]({
+async function updateDataElement(reactor, resourceName, local) {
+  return (await reactor[`update${resourceName}`]({
     id: local.id,
     type: local.type,
     attributes: local.attributes
   })).data;
+}
+
+async function updateExtensionOr(reactor, resourceName, local) {
+  if (resourceName === 'Extension') return await updateExtension(reactor, local);
+  return await updateDataElement(reactor, resourceName, local);
+}
+
+async function updateResource(reactor, resourceType, local) {
+  const resourceName = toMethodName(resourceType);
+  const update = updateExtensionOr(reactor, resourceName, local);
   maybeRevise(resourceName, reactor, local);
   return update;
 }
