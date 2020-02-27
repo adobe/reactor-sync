@@ -17,54 +17,78 @@ const fromFile = require('./utils/fromFile');
 const toFiles = require('./utils/toFiles');
 const diff = require('./diff');
 
-module.exports = async (args) => {
 
+function checkSettings(args) {
   const settingsPath = args.settingsPath || './.reactor-settings.json';
-
-  let settings;
-
-  // read the settings file.
   if (fs.existsSync(settingsPath)) {
-    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
   } else {
-    throw Error('Launch Sync settings file does not exist.');
+    return console.error(`Launch Sync settings file at: ${settingsPath} does not exist.`);
   }
+}
 
-  // transfer settings
-  args.propertyId = settings.propertyId;
-  args.environment = settings.environment;
-  args.integration = settings.integration;
+async function checkAccessToken(args) {
+  if (!args.accessToken)
+    return await getAccessToken(args);
+}
 
-  // get the access token
-  if (!args.accessToken) {
-    args.accessToken = await getAccessToken(args);
-  }
+function checkEnvironment(settings) {
+  if (!settings.environment) 
+    console.error('No "environment" property.');
+  if (!settings.environment.reactorUrl)
+    console.error('No "environment.reactorUrl" property.');
+  return settings.environment;
+}
 
-  const environment = args.environment;
-
-  // check to make sure that we have all of the information we need
-  if (!environment) {
-    throw Error('no "environment" property.');
-  }
-  if (!environment.reactorUrl) {
-    throw Error('no "environment.reactorUrl" property.');
-  }
-
-  if (!args.reactor) {
-    args.reactor = await new Reactor(args.accessToken, {
-      reactorUrl: environment.reactorUrl
+async function getReactor(settings) {
+  if (!settings.reactor)
+    return await new Reactor(settings.accessToken, {
+      reactorUrl: settings.environment.reactorUrl,
+      enableLogging: false // turn true to help debug
     });
-  }
+  return settings.reactor;
+}
 
-  // first get the diff
-  const result = await diff(args);
-
-  const reactor = args.reactor;
-
-  const shouldSyncSome = (
+function shouldSync(args) {
+  return (
     args.modified ||
     args.behind
   );
+}
+
+
+async function updateResource(reactor, resourceType, local) {
+  const resourceName = toMethodName(resourceType);
+  const update = (await reactor[`update${resourceName}`]({
+    id: local.id,
+    type: local.type,
+    attributes: local.attributes
+  })).data;
+  maybeRevise(resourceName, reactor, local);
+  return update;
+}
+
+async function maybeRevise(resourceName, reactor, local) {
+  if (resourceName === ('Extension' || 'DataElement'))
+    return await reactor[`revise${resourceName}`](local.id);
+}
+
+function toMethodName(string) {
+  string = string.replace(/_([a-z])/g, (g) => // Remove any "_"s, i.e.: "data_elements" -> DataElement
+    g[1].toUpperCase()
+  );
+  string = string.slice(0, -1); // Remove the "s", i.e.: "data_elements" -> DataElement
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+module.exports = async (args) => {
+  const settings = checkSettings(args);
+  checkEnvironment(settings);
+
+  settings.accessToken = await checkAccessToken(settings);
+  const reactor = await getReactor(settings);
+  const result = await diff(args);
+  const shouldSyncSome = shouldSync(args);
 
   // added
   // for (const comparison of result.added) {
@@ -77,81 +101,14 @@ module.exports = async (args) => {
     args.modified
   ) {
 
-    console.log('syncing modified');
+    console.log('🔂 Syncing Modified.');
 
     for (const comparison of result.modified) {
-
       const local = await fromFile(comparison.path, args);
-
       // sync it
-      let updated;
+      const updated = await updateResource(reactor, local.type, local);
 
-      // properties
-      if (local.type === 'properties') {
-
-        updated = (await reactor.updateProperty({
-          id: local.id,
-          type: local.type,
-          attributes: local.attributes
-        })).data;
-
-      // rules
-      } else if (local.type === 'rules') {
-
-        updated = (await reactor.updateRule({
-          id: local.id,
-          type: local.type,
-          attributes: local.attributes
-        })).data;
-
-      // environments
-      } else if (local.type === 'environments') {
-        
-        updated = (await reactor.updateEnvironment({
-          id: local.id,
-          type: local.type,
-          attributes: local.attributes
-        })).data;
-
-      // data_elements
-      } else if (local.type === 'data_elements') {
-
-        updated = (await reactor.updateDataElement({
-          id: local.id,
-          type: local.type,
-          attributes: local.attributes
-        })).data;
-
-        // special case...create a revision
-        await reactor.reviseDataElement(local.id);
-
-      // extensions
-      } else if (local.type === 'extensions') {
-
-        updated = (await reactor.updateExtension({
-          id: local.id,
-          type: local.type,
-          attributes: local.attributes
-        })).data;
-
-        // special case...create a revision
-        await reactor.reviseExtension(local.id);
-
-      // rule_components
-      } else if (local.type === 'rule_components') {
-
-        updated = (await reactor.updateRuleComponent({
-          id: local.id,
-          type: local.type,
-          attributes: local.attributes
-        })).data;
-
-        // TODO: figure out how to revise the rule
-        // await reactor.reviseRule(local.relationships);
-
-      }
-
-      // persist the updated files back in the form it is supposed to look like
+      // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
 
     }
@@ -169,29 +126,13 @@ module.exports = async (args) => {
     args.behind
   ) {
 
-    console.log('syncing behind');
+    console.log('↩️  Syncing behind.');
 
     for (const comparison of result.behind) {
-
-      let updated;
-
-      // retrieve the latest and save
-      if (comparison.type === 'properties') {
-        updated = (await reactor.getProperty(comparison.id)).data;
-      } else if (comparison.type === 'rules') {
-        updated = (await reactor.getRule(comparison.id)).data;
-      } else if (comparison.type === 'environments') {
-        updated = (await reactor.getEnvironment(comparison.id)).data;
-      } else if (comparison.type === 'data_elements') {
-        updated = (await reactor.getDataElement(comparison.id)).data;
-      } else if (comparison.type === 'extensions') {
-        updated = (await reactor.getExtension(comparison.id)).data;
-      } else if (comparison.type === 'rule_components') {
-        updated = (await reactor.getRuleComponent(comparison.id)).data;
-      }
+      const resourceMethodName = toMethodName(comparison.type);
+      const updated = (await reactor[`get${resourceMethodName}`](comparison.id)).data;
       
       await toFiles(updated, args); 
-
     }
 
   }
