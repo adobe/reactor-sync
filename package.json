@@ -24,7 +24,7 @@
     "eslint": "./node_modules/.bin/eslint ."
   },
   "dependencies": {
-    "@adobe/reactor-sdk": "^1.0.5",
+    "@adobe/reactor-sdk": "^1.0.6",
     "chalk": "^2.4.2",
     "jwt-simple": "^0.5.6",
     "ora": "^3.4.0",

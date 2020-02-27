@@ -29,29 +29,24 @@ function checkSettings(args) {
 
 async function checkAccessToken(args) {
   if (!args.accessToken)
-    args.accessToken = await getAccessToken(args);
+    return await getAccessToken(args);
 }
 
-function checkEnvironment(args) {
-  if (!args.environment) 
+function checkEnvironment(settings) {
+  if (!settings.environment) 
     console.error('No "environment" property.');
-  if (!args.environment.reactorUrl)
+  if (!settings.environment.reactorUrl)
     console.error('No "environment.reactorUrl" property.');
-  return args.environment;
+  return settings.environment;
 }
 
-function transferSettings(args, settings) {
-  args.propertyId = settings.propertyId;
-  args.environment = settings.environment;
-  args.integration = settings.integration;
-}
-
-async function getReactor(args, environment) {
-  if (!args.reactor) {
-    args.reactor = await new Reactor(args.accessToken, {
-      reactorUrl: environment.reactorUrl
+async function getReactor(settings) {
+  if (!settings.reactor)
+    return await new Reactor(settings.accessToken, {
+      reactorUrl: settings.environment.reactorUrl,
+      enableLogging: false // turn true to help debug
     });
-  }
+  return settings.reactor;
 }
 
 function shouldSync(args) {
@@ -61,8 +56,9 @@ function shouldSync(args) {
   );
 }
 
+
 async function updateResource(reactor, resourceType, local) {
-  const resourceName = resourceType.slice(0, -1);
+  const resourceName = toMethodName(resourceType);
   const update = (await reactor[`update${resourceName}`]({
     id: local.id,
     type: local.type,
@@ -78,23 +74,19 @@ async function maybeRevise(resourceName, reactor, local) {
 }
 
 function toMethodName(string) {
-  string = string.replace(/_([a-z])/g, (g) => {
-    g.slice(0, -1);
-    return g[1].toUpperCase();
-  });
+  string = string.replace(/_([a-z])/g, (g) => // Remove any "_"s, i.e.: "data_elements" -> DataElement
+    g[1].toUpperCase()
+  );
+  string = string.slice(0, -1); // Remove the "s", i.e.: "data_elements" -> DataElement
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-
 module.exports = async (args) => {
   const settings = checkSettings(args);
-  const environment = checkEnvironment(args);
-  const reactor = args.reactor;
+  checkEnvironment(settings);
 
-  checkAccessToken(args);
-  transferSettings(args, settings);
-  getReactor(args, environment);
-
+  settings.accessToken = await checkAccessToken(settings);
+  const reactor = await getReactor(settings);
   const result = await diff(args);
   const shouldSyncSome = shouldSync(args);
 
@@ -114,7 +106,7 @@ module.exports = async (args) => {
     for (const comparison of result.modified) {
       const local = await fromFile(comparison.path, args);
       // sync it
-      const updated = updateResource(reactor, local.type, local);
+      const updated = await updateResource(reactor, local.type, local);
 
       // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
@@ -134,7 +126,7 @@ module.exports = async (args) => {
     args.behind
   ) {
 
-    console.log('↩️ Syncing behind.');
+    console.log('↩️  Syncing behind.');
 
     for (const comparison of result.behind) {
       const resourceMethodName = toMethodName(comparison.type);
