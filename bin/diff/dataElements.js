@@ -28,9 +28,9 @@ module.exports = async (args, result) => {
     behind: [],
     unchanged: [],
   };
+
   const propertyId = args.propertyId;
   const reactor = args.reactor;
-
   const propertyPath = `./${propertyId}`;
   const dataElementsPath = `${propertyPath}/data_elements`;
 

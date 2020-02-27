@@ -33,10 +33,12 @@ async function checkAccessToken(args) {
 }
 
 function checkEnvironment(settings) {
-  if (!settings.environment) 
+  if (!settings.environment) {
     console.error('No "environment" property.');
-  if (!settings.environment.reactorUrl)
+  }
+  if (!settings.environment.reactorUrl) {
     console.error('No "environment.reactorUrl" property.');
+  }
   return settings.environment;
 }
 
@@ -49,12 +51,12 @@ async function getReactor(settings) {
   return settings.reactor;
 }
 
-function shouldSync(args) {
-  return (
-    args.modified ||
-    args.behind
-  );
-}
+// function shouldSync(args, diffState) {
+//   return (
+//     args.modified ||
+//     args.behind
+//   );
+// }
 
 async function updateExtension(reactor, local) {
   return (await reactor.updateExtension(
@@ -107,7 +109,7 @@ module.exports = async (args) => {
   settings.accessToken = await checkAccessToken(settings);
   const reactor = await getReactor(settings);
   const result = await diff(args);
-  const shouldSyncSome = shouldSync(args);
+  // const shouldSyncSome = shouldSync(args);
 
   // added
   // for (const comparison of result.added) {
@@ -116,7 +118,8 @@ module.exports = async (args) => {
 
   // modified
   if (
-    !shouldSyncSome ||
+    !args.behind ||
+    !args.deleted ||
     args.modified
   ) {
 
@@ -135,13 +138,25 @@ module.exports = async (args) => {
   }
 
   // deleted
-  // for (const comparison of result.deleted) {
-  //   // TODO: 
-  // }
+  if (
+    !args.modified ||
+    !args.behind ||
+    args.deleted
+  ) {
+
+    console.log('🚮 Syncing deleted.');
+
+    for (const comparison of result.deleted) {
+      const resourceMethodName = toMethodName(comparison.type);
+      const updated = (await reactor[`delete${resourceMethodName}`](comparison.id)).data;
+
+      await toFiles(updated, args); 
+    }
+  }
 
   // behind
   if (
-    !shouldSyncSome ||
+    !args.modified ||
     args.behind
   ) {
 

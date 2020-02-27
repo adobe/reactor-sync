@@ -10,7 +10,14 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const chalk = require('chalk');
+// const chalk = require('chalk');
+
+function getResult(resultType, details) {
+  return {
+    result: resultType,
+    details: details
+  };
+}
 
 module.exports = (local, remote) => {
   let same = true;
@@ -96,16 +103,25 @@ module.exports = (local, remote) => {
     // if the remote object's date is greater than the local one, that means that 
     // the remote object was updated and we may have a sync issue.
     if (remoteDate > localDate) {
-      return {
-        result: 'behind',
-        details: details
-      };
+      // return {
+      //   result: 'behind',
+      //   details: details
+      // };
+      return getResult('behind', details);
+    }
+    if (remoteDate < localDate) {
+      // return {
+      //   result: 'deleted',
+      //   details: details
+      // };
+      return getResult('deleted', details);
     }
 
-    return {
-      result: 'modified',
-      details: details,
-    };
+    // return {
+    //   result: 'modified',
+    //   details: details,
+    // };
+    return getResult('modified', details);
   }
 
   return {
