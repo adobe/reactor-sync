@@ -33,10 +33,12 @@ async function checkAccessToken(args) {
 }
 
 function checkEnvironment(settings) {
-  if (!settings.environment) 
+  if (!settings.environment) {
     console.error('No "environment" property.');
-  if (!settings.environment.reactorUrl)
+  }
+  if (!settings.environment.reactorUrl) {
     console.error('No "environment.reactorUrl" property.');
+  }
   return settings.environment;
 }
 
@@ -73,12 +75,31 @@ async function maybeRevise(resourceName, reactor, local) {
     return await reactor[`revise${resourceName}`](local.id);
 }
 
-function toMethodName(string) {
-  string = string.replace(/_([a-z])/g, (g) => // Remove any "_"s, i.e.: "data_elements" -> DataElement
+function pluralCheck(resourceName) {
+  const regexPlural = /ies/g;
+  return resourceName.match(regexPlural);
+}
+
+function singualize(resourceName) {
+  if (pluralCheck(resourceName)) {
+    return resourceName.replace('ies', 'y');
+  }
+  if (resourceName.slice(-1) === 's') {
+    return resourceName.slice(0, -1); // Remove the "s", i.e.: "data_elements" -> DataElement
+  }
+  return resourceName;
+}
+
+function removeUnderscore(resourceName) {
+  resourceName = resourceName.replace(/_([a-z])/g, (g) => // Remove any "_"s, i.e.: "data_elements" -> DataElement
     g[1].toUpperCase()
   );
-  string = string.slice(0, -1); // Remove the "s", i.e.: "data_elements" -> DataElement
-  return string.charAt(0).toUpperCase() + string.slice(1);
+  return resourceName.charAt(0).toUpperCase() + resourceName.slice(1);
+}
+
+function toMethodName(resourceName) {
+  resourceName = singualize(resourceName);
+  return removeUnderscore(resourceName);
 }
 
 module.exports = async (args) => {
