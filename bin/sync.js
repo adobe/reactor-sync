@@ -131,9 +131,7 @@ module.exports = async (args) => {
 
       // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
-
     }
-
   }
 
   // deleted
@@ -155,7 +153,6 @@ module.exports = async (args) => {
       
       await toFiles(updated, args); 
     }
-
   }
 
   // unchanged
