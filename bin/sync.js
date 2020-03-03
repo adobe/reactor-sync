@@ -76,10 +76,12 @@ async function updateResource(reactor, local) {
     type: local.type,
     attributes: local.attributes
   })).data;
+  maybeRevise(resourceName, reactor, local);
+  return update;
 }
 
-async function updateExtensionOr(reactor, resourceName, local) {
-  if (resourceName === 'Extension') return await updateExtension(reactor, local);
+async function updateExtensionOr(reactor, local) {
+  if (local.type === 'Extension') return await updateExtension(reactor, local);
   return await updateResource(reactor, local);
 }
 
@@ -134,7 +136,7 @@ module.exports = async (args) => {
     for (const comparison of result.modified) {
       const local = await fromFile(comparison.path, args);
       // sync it
-      const updated = await updateResource(reactor, local);
+      const updated = await updateExtensionOr(reactor, local);
 
       // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
