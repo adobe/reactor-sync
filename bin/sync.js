@@ -59,8 +59,8 @@ function shouldSync(args) {
 }
 
 
-async function updateResource(reactor, resourceType, local) {
-  const resourceName = toMethodName(resourceType);
+async function updateResource(reactor, local) {
+  const resourceName = toMethodName(local.type);
   const update = (await reactor[`update${resourceName}`]({
     id: local.id,
     type: local.type,
@@ -75,7 +75,7 @@ async function maybeRevise(resourceName, reactor, local) {
     return await reactor[`revise${resourceName}`](local.id);
 }
 
-function singualize(resourceName) {
+function makeSingular(resourceName) {
   if (resourceName.slice(-3) === 'ies') {
     return resourceName.replace('ies', 'y');
   }
@@ -93,7 +93,7 @@ function removeUnderscore(resourceName) {
 }
 
 function toMethodName(resourceName) {
-  resourceName = singualize(resourceName);
+  resourceName = makeSingular(resourceName);
   return removeUnderscore(resourceName);
 }
 
@@ -122,7 +122,7 @@ module.exports = async (args) => {
     for (const comparison of result.modified) {
       const local = await fromFile(comparison.path, args);
       // sync it
-      const updated = await updateResource(reactor, local.type, local);
+      const updated = await updateResource(reactor, local);
 
       // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
