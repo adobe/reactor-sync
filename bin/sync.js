@@ -75,13 +75,8 @@ async function maybeRevise(resourceName, reactor, local) {
     return await reactor[`revise${resourceName}`](local.id);
 }
 
-function pluralCheck(resourceName) {
-  const regexPlural = /ies/g;
-  return resourceName.match(regexPlural);
-}
-
 function singualize(resourceName) {
-  if (pluralCheck(resourceName)) {
+  if (resourceName.slice(-3) === 'ies') {
     return resourceName.replace('ies', 'y');
   }
   if (resourceName.slice(-1) === 's') {
