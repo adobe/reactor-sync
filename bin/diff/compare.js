@@ -25,6 +25,17 @@ module.exports = (local, remote) => {
   let localExists = local && local.attributes;
   let remoteExists = remote && remote.attributes;
 
+  if (
+    !local &&
+    remote
+  ) {
+    console.log('🔴 local: ', local);
+    console.log('❇️ remote: ', remote);
+    return {
+      result: 'deleted'
+    };
+  }
+
   // if we have the local, but not the remote
   if (
     localExists && 
@@ -110,13 +121,8 @@ module.exports = (local, remote) => {
       return getResult('behind', details);
     }
     if (remoteDate < localDate) {
-      // return {
-      //   result: 'deleted',
-      //   details: details
-      // };
-      return getResult('deleted', details);
+      return getResult('created', details);
     }
-
     // return {
     //   result: 'modified',
     //   details: details,
