@@ -86,10 +86,9 @@ function makeSingular(resourceName) {
 }
 
 function removeUnderscore(resourceName) {
-  resourceName = resourceName.replace(/_([a-z])/g, (g) => // Remove any "_"s, i.e.: "data_elements" -> DataElement
-    g[1].toUpperCase()
-  );
-  return resourceName.charAt(0).toUpperCase() + resourceName.slice(1);
+  const splitName = resourceName.split('_');
+  const capitalize = str => str[0].toUpperCase() + str.slice(1);
+  return splitName.map(capitalize).join('');
 }
 
 function toMethodName(resourceName) {
