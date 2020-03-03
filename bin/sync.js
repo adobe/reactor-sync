@@ -69,7 +69,9 @@ async function updateExtension(reactor, local) {
     }})).data;
 }
 
-async function updateDataElement(reactor, resourceName, local) {
+
+async function updateResource(reactor, local) {
+  const resourceName = toMethodName(local.type);
   return (await reactor[`update${resourceName}`]({
     id: local.id,
     type: local.type,
@@ -82,19 +84,12 @@ async function updateExtensionOr(reactor, resourceName, local) {
   return await updateDataElement(reactor, resourceName, local);
 }
 
-async function updateResource(reactor, resourceType, local) {
-  const resourceName = toMethodName(resourceType);
-  const update = updateExtensionOr(reactor, resourceName, local);
-  maybeRevise(resourceName, reactor, local);
-  return update;
-}
-
 async function maybeRevise(resourceName, reactor, local) {
   if (resourceName === ('Extension' || 'DataElement'))
     return await reactor[`revise${resourceName}`](local.id);
 }
 
-function singualize(resourceName) {
+function makeSingular(resourceName) {
   if (resourceName.slice(-3) === 'ies') {
     return resourceName.replace('ies', 'y');
   }
@@ -105,14 +100,13 @@ function singualize(resourceName) {
 }
 
 function removeUnderscore(resourceName) {
-  resourceName = resourceName.replace(/_([a-z])/g, (g) => // Remove any "_"s, i.e.: "data_elements" -> DataElement
-    g[1].toUpperCase()
-  );
-  return resourceName.charAt(0).toUpperCase() + resourceName.slice(1);
+  const splitName = resourceName.split('_');
+  const capitalize = str => str[0].toUpperCase() + str.slice(1);
+  return splitName.map(capitalize).join('');
 }
 
 function toMethodName(resourceName) {
-  resourceName = singualize(resourceName);
+  resourceName = makeSingular(resourceName);
   return removeUnderscore(resourceName);
 }
 
@@ -142,7 +136,7 @@ module.exports = async (args) => {
     for (const comparison of result.modified) {
       const local = await fromFile(comparison.path, args);
       // sync it
-      const updated = await updateResource(reactor, local.type, local);
+      const updated = await updateResource(reactor, local);
 
       // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
