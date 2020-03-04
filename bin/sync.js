@@ -81,7 +81,7 @@ async function updateResource(reactor, local) {
 }
 
 async function updateExtensionOr(reactor, local) {
-  if (local.type === 'Extension') return await updateExtension(reactor, local);
+  if (local.type === 'extensions') return await updateExtension(reactor, local);
   return await updateResource(reactor, local);
 }
 
