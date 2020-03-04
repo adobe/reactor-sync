@@ -58,6 +58,16 @@ function shouldSync(args) {
   );
 }
 
+async function updateExtension(reactor, local) {
+  return (await reactor.updateExtension(
+    local.id,
+    { data: {
+      id: local.id,
+      type: local.type,
+      attributes: local.attributes,
+      relationships: local.relationships 
+    }})).data;
+}
 
 async function updateResource(reactor, local) {
   const resourceName = toMethodName(local.type);
@@ -68,6 +78,11 @@ async function updateResource(reactor, local) {
   })).data;
   maybeRevise(resourceName, reactor, local);
   return update;
+}
+
+async function updateExtensionOr(reactor, local) {
+  if (local.type === 'extensions') return await updateExtension(reactor, local);
+  return await updateResource(reactor, local);
 }
 
 async function maybeRevise(resourceName, reactor, local) {
@@ -121,7 +136,7 @@ module.exports = async (args) => {
     for (const comparison of result.modified) {
       const local = await fromFile(comparison.path, args);
       // sync it
-      const updated = await updateResource(reactor, local);
+      const updated = await updateExtensionOr(reactor, local);
 
       // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
