@@ -23,22 +23,23 @@ function getPropertyOr(resourceName) {
   }
   return `list${resourceName}ForProperty`;
 }
-function listResources(reactor, resourceName, resourceType, args) {
+function listResources(settings, resourceName, resourceType) {
   // console.log(`🔴 ${getPropertyOr(resourceName)}`);
-  reactor[`${getPropertyOr(resourceName)}`](args.propertyId)
+  // console.log(`🔴 ${settings.propertyId}`);
+  settings.reactor[`${getPropertyOr(resourceName)}`](settings.propertyId)
   .then(({ data: adobeResources }) => {
-    writeAll(adobeResources, resourceType, args);
+    writeAll(adobeResources, resourceType, settings);
   });
 }
 
 
-function writeResources(resourceTypes, settings, args) {
+function writeResources(resourceTypes, settings) {
   resourceTypes.forEach( resourceType => {
     const resourceName = toMethodName(resourceType, false);
       
     try {
       // console.log(`🔴 args.propertyId: ${args.propertyId}`);
-      return listResources(settings.reactor, resourceName, resourceType, args);
+      return listResources(settings, resourceName, resourceType);
     } catch (error) {
       console.error('🚨Error in writeResources(): ', error);
     }

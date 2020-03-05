@@ -13,7 +13,7 @@ async function pull(args) {
   settings.reactor = await getReactor(settings);
   // console.log('🔴 settings: ', settings);
   // console.log('🔴 reactor: ', reactor);
-  writeResources(resourceTypes, settings, args);
+  writeResources(resourceTypes, settings);
 }
 
 module.exports = pull;

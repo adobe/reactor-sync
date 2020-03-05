@@ -78,7 +78,7 @@ function getSettings(data, localPath) {
 }
 
 async function toFiles(data, args) {
-  console.log('🔴 args.reactor: ', args.reactor);
+  // console.log('🔴 args.reactor: ', args.reactor);
   const reactor = args.reactor;
   const { localPath, localDirectory } = getLocalPath(data, args);
 
