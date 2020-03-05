@@ -13,83 +13,98 @@ governing permissions and limitations under the License.
 const fs = require('fs');
 const sanitize = require('sanitize-filename');
 
-module.exports = async function (data, args) {
-
-  const propertyId = args.propertyId;
-  const reactor = args.reactor;
-
-  const propertyPath = `./${propertyId}`;
-  let localPath;
-  let localDirectory;
-
-  // get the path where we need to save this thing
-  if (data.type === 'properties') {
-    localPath = localDirectory = propertyPath;
-  } else {
-    localPath = `${propertyPath}/${data.type}/${data.id}`;
-    localDirectory = `${propertyPath}/${data.type}`;
-  }
-
-  // create the folder if it doesn't exist
+function checkCreateDir(localPath) {
   if (!fs.existsSync(localPath)) {
     fs.mkdirSync(localPath);
   }
+}
 
+function getLocalPath(data, args) {
+  const propertyPath = `./${args.propertyId}`;
+  if (data.type === 'properties') {
+    // localPath = localDirectory = propertyPath;
+    return propertyPath;
+  } else {
+    // localPath = `${propertyPath}/${data.type}/${data.id}`;
+    // localDirectory = `${propertyPath}/${data.type}`;
+    // console.log('🔴 data.id: ', data.id);
+    // console.log('🔴 args: ', args);
+    return { 
+      'localPath': `${propertyPath}/${data.type}/${data.id}`,
+      'localDirectory': `${propertyPath}/${data.type}`
+    };
+  }
+}
+
+function sanitizeName(data) {
   // create a name that links to the original file
   if (data.attributes.name) {
-    const sanitizedName = '_' + sanitize(data.attributes.name, {
+    return '_' + sanitize(data.attributes.name, {
       replacement: '_'
     });
-    if (!fs.existsSync(`${localDirectory}/${sanitizedName}`)) {
-      fs.symlinkSync(
-        data.id,
-        `${localDirectory}/${sanitizedName}`,
-        'dir'
-      );
-    }
-
-    // if they are rule components, do an extra step
-    if (data.type === 'rule_components') {
-      // TODO: save some symLinks in the rule_components directory of the rule
-    }
-
   }
+}
 
-  // write the data.json file
+function makeSymLink(localDirectory, sanitizedName, data) {
+  if (!fs.existsSync(`${localDirectory}/${sanitizedName}`)) {
+    // console.log('🔴 data.id: ', data);
+    fs.symlinkSync(data.id, `${localDirectory}/${sanitizedName}`, 'dir');
+  }
+}
+
+function sanitizeLink(data, localDirectory) {
+  const sanitizedName = sanitizeName(data);
+  if (sanitizeName(data))
+    makeSymLink(localDirectory, sanitizedName, data);
+}
+
+function writeDataJson(localPath, data) { 
   fs.writeFileSync(
     `${localPath}/data.json`,
     JSON.stringify(data, null, '  ')
   );
+}
+
+function getSettings(data, localPath) {
+  let settings = JSON.parse(data.attributes.settings);
+
+  if (settings) {
+    fs.writeFileSync(
+      `${localPath}/settings.json`,
+      JSON.stringify(settings, null, '  ')
+    );
+    return settings;
+  }
+}
+
+async function toFiles(data, args) {
+  console.log('🔴 args.reactor: ', args.reactor);
+  const reactor = args.reactor;
+  const { localPath, localDirectory } = getLocalPath(data, args);
+
+  checkCreateDir(localPath);
+  sanitizeLink(data, localDirectory);
+
+  // if they are rule components, do an extra step
+  // if (data.type === 'rule_components') {
+  // TODO: save some symLinks in the rule_components directory of the rule
+  // }
+
+  writeDataJson(localPath, data);
 
   // if the data has settings, make changes to it
   if (data.attributes.settings) {
-
-    // parse settings
-    let settings = JSON.parse(data.attributes.settings);
-
-    // write the settings json file
-    if (settings) {
-
-      // write the settings file.
-      fs.writeFileSync(
-        `${localPath}/settings.json`,
-        JSON.stringify(settings, null, '  ')
-      );
-
-    }
+    const settings = getSettings(data, localPath);
 
     if (settings) {
-
       let transforms;
 
       // dataElements
       if (data.type === 'data_elements') {
-
         if (
           data.relationships.updated_with_extension_package &&
           data.relationships.updated_with_extension_package.data
         ) {
-
           const extensionPackage = (await reactor.getExtensionPackage(
             data.relationships.updated_with_extension_package.data.id
           )).data;
@@ -101,36 +116,29 @@ module.exports = async function (data, args) {
           transforms = items.find((item) => (
             item.id === data.attributes.delegate_descriptor_id
           )).transforms;
-
         }
 
       // extensions
       } else if (data.type === 'extensions') {
-
         if (
           data.relationships.extension_package &&
           data.relationships.extension_package.data
         ) {
-
           const extensionPackage = (await reactor.getExtensionPackage(
             data.relationships.extension_package.data.id
           )).data;
 
           // transforms
           transforms = extensionPackage.attributes.configuration.transforms;
-
         }
 
       // rule_components
       } else if (data.type === 'rule_components') {
-
         if (
           data.relationships.updated_with_extension_package &&
           data.relationships.updated_with_extension_package.data
         ) {
-
           let items;
-          
           const extensionPackage = (await reactor.getExtensionPackage(
             data.relationships.updated_with_extension_package.data.id
           )).data;
@@ -141,14 +149,12 @@ module.exports = async function (data, args) {
             extensionPackage.attributes.actions
           ) {
             items = extensionPackage.attributes.actions;
-
           // if events
           } else if (
             data.attributes.delegate_descriptor_id.indexOf('::events::') !== -1 &&
             extensionPackage.attributes.events
           ) {
             items = extensionPackage.attributes.events;
-
           // if conditions
           } else if (
             data.attributes.delegate_descriptor_id.indexOf('::conditions::') !== -1 &&
@@ -156,18 +162,14 @@ module.exports = async function (data, args) {
           ) {
             items = extensionPackage.attributes.conditions;
           }
-
           // find the correct rule_component that goes with this type
           transforms = items.find((item) => (
             item.id === data.attributes.delegate_descriptor_id
           )).transforms;
-
         }
-
       }
 
       if (transforms) {
-
         const get = function (path, obj) {
           var
             parts,
@@ -184,7 +186,6 @@ module.exports = async function (data, args) {
 
             // if that path exists
             if (obj[part]) {
-              
               // if it is the last part
               if (i === il - 1) {
                 value = obj[part];
@@ -192,7 +193,6 @@ module.exports = async function (data, args) {
               } else {
                 obj = obj[part];
               }
-              
             } else {
               break;
             }
@@ -203,8 +203,7 @@ module.exports = async function (data, args) {
 
         // loop through and make the transform and save
         transforms.forEach(function (transform) {
-          var
-            value;
+          var value;
 
           // get the value
           value = get(transform.propertyPath, settings);
@@ -236,24 +235,19 @@ ${value}
             transform.type === 'file' ||
             transform.type === 'customCode'
           ) {
-
             // write the settings file.
             fs.writeFileSync(
               `${localPath}/settings.${transform.propertyPath}.js`,
               value
             );
-
           } else {
             console.error('unrecognized transform');
             console.log(transform);
           }
-
         });
-
       }
-
     }
-
   }
+}
 
-};
+module.exports = toFiles;

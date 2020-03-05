@@ -1,5 +1,3 @@
-
-
 function makeSingular(resourceName) {
   if (resourceName.slice(-3) === 'ies') {
     return resourceName.replace('ies', 'y');
@@ -16,11 +14,9 @@ function removeUnderscore(resourceName) {
   return splitName.map(capitalize).join('');
 }
 
-function toMethodName(resourceName) {
-  resourceName = makeSingular(resourceName);
+function toMethodName(resourceName, singualrBool) {
+  if (singualrBool) resourceName = makeSingular(resourceName);
   return removeUnderscore(resourceName);
 }
 
-module.exports = {
-  toMethodName
-};
+module.exports = toMethodName;

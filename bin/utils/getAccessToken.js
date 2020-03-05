@@ -90,6 +90,4 @@ async function getAccessToken(settings) {
 
 }
 
-module.exports = { 
-  checkAccessToken
-};
+module.exports = checkAccessToken;

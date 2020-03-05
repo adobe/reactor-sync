@@ -10,33 +10,14 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const fs = require('fs');
 const checkAccessToken = require('./utils/getAccessToken');
 const getReactor = require('./utils/getReactor');
 const fromFile = require('./utils/fromFile');
 const toFiles = require('./utils/toFiles');
+const checkArgs = require('./utils/checkArgs');
 const toMethodName = require('./utils/resourceName');
 const diff = require('./diff');
 
-
-function checkSettings(args) {
-  const settingsPath = args.settingsPath || './.reactor-settings.json';
-  if (fs.existsSync(settingsPath)) {
-    return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-  } else {
-    return console.error(`Launch Sync settings file at: ${settingsPath} does not exist.`);
-  }
-}
-
-function checkEnvironment(settings) {
-  if (!settings.environment) {
-    console.error('No "environment" property.');
-  }
-  if (!settings.environment.reactorUrl) {
-    console.error('No "environment.reactorUrl" property.');
-  }
-  return settings.environment;
-}
 
 async function updateExtension(reactor, local) {
   return (await reactor.updateExtension(
@@ -71,8 +52,7 @@ async function maybeRevise(resourceName, reactor, local) {
 }
 
 module.exports = async (args) => {
-  const settings = checkSettings(args);
-  checkEnvironment(settings);
+  const settings = checkArgs(args);
 
   settings.accessToken = await checkAccessToken(settings);
   const reactor = await getReactor(settings);
