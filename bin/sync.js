@@ -11,10 +11,11 @@ governing permissions and limitations under the License.
 */
 
 const fs = require('fs');
-const Reactor = require('@adobe/reactor-sdk').default;
-const getAccessToken = require('./utils/getAccessToken');
+const checkAccessToken = require('./utils/getAccessToken');
+const getReactor = require('./utils/getReactor');
 const fromFile = require('./utils/fromFile');
 const toFiles = require('./utils/toFiles');
+const toMethodName = require('./utils/resourceName');
 const diff = require('./diff');
 
 
@@ -27,11 +28,6 @@ function checkSettings(args) {
   }
 }
 
-async function checkAccessToken(args) {
-  if (!args.accessToken)
-    return await getAccessToken(args);
-}
-
 function checkEnvironment(settings) {
   if (!settings.environment) {
     console.error('No "environment" property.');
@@ -40,15 +36,6 @@ function checkEnvironment(settings) {
     console.error('No "environment.reactorUrl" property.');
   }
   return settings.environment;
-}
-
-async function getReactor(settings) {
-  if (!settings.reactor)
-    return await new Reactor(settings.accessToken, {
-      reactorUrl: settings.environment.reactorUrl,
-      enableLogging: false // turn true to help debug
-    });
-  return settings.reactor;
 }
 
 async function updateExtension(reactor, local) {
@@ -74,34 +61,13 @@ async function updateResource(reactor, local) {
 }
 
 async function updateExtensionOr(reactor, local) {
-  if (local.type === 'Extension') return await updateExtension(reactor, local);
+  if (local.type === 'extensions') return await updateExtension(reactor, local);
   return await updateResource(reactor, local);
 }
 
 async function maybeRevise(resourceName, reactor, local) {
   if (resourceName === ('Extension' || 'DataElement'))
     return await reactor[`revise${resourceName}`](local.id);
-}
-
-function makeSingular(resourceName) {
-  if (resourceName.slice(-3) === 'ies') {
-    return resourceName.replace('ies', 'y');
-  }
-  if (resourceName.slice(-1) === 's') {
-    return resourceName.slice(0, -1); // Remove the "s", i.e.: "data_elements" -> DataElement
-  }
-  return resourceName;
-}
-
-function removeUnderscore(resourceName) {
-  const splitName = resourceName.split('_');
-  const capitalize = str => str[0].toUpperCase() + str.slice(1);
-  return splitName.map(capitalize).join('');
-}
-
-function toMethodName(resourceName) {
-  resourceName = makeSingular(resourceName);
-  return removeUnderscore(resourceName);
 }
 
 module.exports = async (args) => {
@@ -121,7 +87,6 @@ module.exports = async (args) => {
   // modified
   if (
     !args.behind ||
-    !args.deleted ||
     args.modified
   ) {
 
@@ -133,25 +98,6 @@ module.exports = async (args) => {
       const updated = await updateExtensionOr(reactor, local);
 
       // Persist the updated files back in the form it is supposed to look like:
-      await toFiles(updated, args); 
-    }
-  }
-
-  // deleted
-  if (
-    !args.modified ||
-    !args.behind ||
-    args.deleted
-  ) {
-
-    console.log('🚮 Syncing deleted.');
-
-    console.log('deleted: ', result);
-
-    for (const comparison of result.deleted) {
-      const resourceMethodName = toMethodName(comparison.type);
-      const updated = (await reactor[`delete${resourceMethodName}`](comparison.id)).data;
-
       await toFiles(updated, args); 
     }
   }

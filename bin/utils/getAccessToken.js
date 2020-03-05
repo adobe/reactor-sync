@@ -14,8 +14,12 @@ const fs = require('fs');
 const jwt = require('jwt-simple');
 const request = require('request-promise-native');
 
-module.exports = async (settings) => {
+async function checkAccessToken(args) {
+  if (!args.accessToken)
+    return await getAccessToken(args);
+}
 
+async function getAccessToken(settings) {
   const integration = settings.integration;
   const environment = settings.environment;
 
@@ -84,4 +88,8 @@ module.exports = async (settings) => {
 
   }
 
+}
+
+module.exports = { 
+  checkAccessToken
 };
