@@ -33,10 +33,12 @@ async function checkAccessToken(args) {
 }
 
 function checkEnvironment(settings) {
-  if (!settings.environment) 
+  if (!settings.environment) {
     console.error('No "environment" property.');
-  if (!settings.environment.reactorUrl)
+  }
+  if (!settings.environment.reactorUrl) {
     console.error('No "environment.reactorUrl" property.');
+  }
   return settings.environment;
 }
 
@@ -56,9 +58,19 @@ function shouldSync(args) {
   );
 }
 
+async function updateExtension(reactor, local) {
+  return (await reactor.updateExtension(
+    local.id,
+    { data: {
+      id: local.id,
+      type: local.type,
+      attributes: local.attributes,
+      relationships: local.relationships 
+    }})).data;
+}
 
-async function updateResource(reactor, resourceType, local) {
-  const resourceName = toMethodName(resourceType);
+async function updateResource(reactor, local) {
+  const resourceName = toMethodName(local.type);
   const update = (await reactor[`update${resourceName}`]({
     id: local.id,
     type: local.type,
@@ -68,17 +80,35 @@ async function updateResource(reactor, resourceType, local) {
   return update;
 }
 
+async function updateExtensionOr(reactor, local) {
+  if (local.type === 'extensions') return await updateExtension(reactor, local);
+  return await updateResource(reactor, local);
+}
+
 async function maybeRevise(resourceName, reactor, local) {
   if (resourceName === ('Extension' || 'DataElement'))
     return await reactor[`revise${resourceName}`](local.id);
 }
 
-function toMethodName(string) {
-  string = string.replace(/_([a-z])/g, (g) => // Remove any "_"s, i.e.: "data_elements" -> DataElement
-    g[1].toUpperCase()
-  );
-  string = string.slice(0, -1); // Remove the "s", i.e.: "data_elements" -> DataElement
-  return string.charAt(0).toUpperCase() + string.slice(1);
+function makeSingular(resourceName) {
+  if (resourceName.slice(-3) === 'ies') {
+    return resourceName.replace('ies', 'y');
+  }
+  if (resourceName.slice(-1) === 's') {
+    return resourceName.slice(0, -1); // Remove the "s", i.e.: "data_elements" -> DataElement
+  }
+  return resourceName;
+}
+
+function removeUnderscore(resourceName) {
+  const splitName = resourceName.split('_');
+  const capitalize = str => str[0].toUpperCase() + str.slice(1);
+  return splitName.map(capitalize).join('');
+}
+
+function toMethodName(resourceName) {
+  resourceName = makeSingular(resourceName);
+  return removeUnderscore(resourceName);
 }
 
 module.exports = async (args) => {
@@ -106,13 +136,11 @@ module.exports = async (args) => {
     for (const comparison of result.modified) {
       const local = await fromFile(comparison.path, args);
       // sync it
-      const updated = await updateResource(reactor, local.type, local);
+      const updated = await updateExtensionOr(reactor, local);
 
       // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
-
     }
-
   }
 
   // deleted
@@ -134,7 +162,6 @@ module.exports = async (args) => {
       
       await toFiles(updated, args); 
     }
-
   }
 
   // unchanged
