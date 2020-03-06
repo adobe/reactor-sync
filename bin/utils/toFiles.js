@@ -11,29 +11,20 @@ governing permissions and limitations under the License.
 */
 
 const fs = require('fs');
+const mkdirp = require('mkdirp');
 const sanitize = require('sanitize-filename');
 
 function checkCreateDir(localPath) {
-  if (!fs.existsSync(localPath)) {
-    fs.mkdirSync(localPath);
-  }
+  if (!fs.existsSync(localPath))
+    mkdirp(localPath);
 }
 
 function getLocalPath(data, args) {
   const propertyPath = `./${args.propertyId}`;
-  if (data.type === 'properties') {
-    // localPath = localDirectory = propertyPath;
-    return propertyPath;
-  } else {
-    // localPath = `${propertyPath}/${data.type}/${data.id}`;
-    // localDirectory = `${propertyPath}/${data.type}`;
-    // console.log('🔴 data.id: ', data.id);
-    // console.log('🔴 args: ', args);
-    return { 
-      'localPath': `${propertyPath}/${data.type}/${data.id}`,
-      'localDirectory': `${propertyPath}/${data.type}`
-    };
-  }
+  return { 
+    'localPath': `${propertyPath}/${data.type}/${data.id}`,
+    'localDirectory': `${propertyPath}/${data.type}`
+  };
 }
 
 function sanitizeName(data) {
@@ -47,7 +38,7 @@ function sanitizeName(data) {
 
 function makeSymLink(localDirectory, sanitizedName, data) {
   if (!fs.existsSync(`${localDirectory}/${sanitizedName}`)) {
-    // console.log('🔴 data.id: ', data);
+    mkdirp(`${localDirectory}/${sanitizedName}`);
     fs.symlinkSync(data.id, `${localDirectory}/${sanitizedName}`, 'dir');
   }
 }
@@ -78,18 +69,11 @@ function getSettings(data, localPath) {
 }
 
 async function toFiles(data, args) {
-  // console.log('🔴 args.reactor: ', args.reactor);
   const reactor = args.reactor;
   const { localPath, localDirectory } = getLocalPath(data, args);
 
   checkCreateDir(localPath);
   sanitizeLink(data, localDirectory);
-
-  // if they are rule components, do an extra step
-  // if (data.type === 'rule_components') {
-  // TODO: save some symLinks in the rule_components directory of the rule
-  // }
-
   writeDataJson(localPath, data);
 
   // if the data has settings, make changes to it
@@ -209,9 +193,7 @@ async function toFiles(data, args) {
           value = get(transform.propertyPath, settings);
 
           // if we didn't get anything back
-          if (!value) {
-            return;
-          }
+          if (!value) return;
           
           // function 
           if (transform.type === 'function') {

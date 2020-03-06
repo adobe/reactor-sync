@@ -1,10 +1,6 @@
 function makeSingular(resourceName) {
-  if (resourceName.slice(-3) === 'ies') {
-    return resourceName.replace('ies', 'y');
-  }
-  if (resourceName.slice(-1) === 's') {
-    return resourceName.slice(0, -1); // Remove the "s", i.e.: "data_elements" -> DataElement
-  }
+  if (resourceName.slice(-3) === 'ies') return resourceName.replace('ies', 'y');
+  if (resourceName.slice(-1) === 's') return resourceName.slice(0, -1);
   return resourceName;
 }
 
