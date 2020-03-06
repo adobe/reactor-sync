@@ -10,7 +10,6 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-// const chalk = require('chalk');
 
 function getResult(resultType, details) {
   return {
@@ -42,6 +41,7 @@ module.exports = (local, remote) => {
     remoteExists
   ) {
     // TODO: determine when this should be deleted or behind...
+    // TODO: deleted can best be accomplished with a: pull -> human change resulting in a diff -> push
     // return {
     //   result: 'deleted'
     // };
@@ -89,11 +89,8 @@ module.exports = (local, remote) => {
 
   }
 
-  // TODO: walk relationships as well and check whether they are different or 
-  // not
-
+  // TODO: walk relationships as well and check whether they are different or not
   if (!same) {
-
     // TODO: How do we figure out if local changes were made, but not synced yet.
     // In other words, how do we figure out a MERGE conflict?
 
@@ -104,16 +101,8 @@ module.exports = (local, remote) => {
     // if the remote object's date is greater than the local one, that means that 
     // the remote object was updated and we may have a sync issue.
     if (remoteDate > localDate) {
-      // return {
-      //   result: 'behind',
-      //   details: details
-      // };
       return getResult('behind', details);
     }
-    // return {
-    //   result: 'modified',
-    //   details: details,
-    // };
     return getResult('modified', details);
   }
 
