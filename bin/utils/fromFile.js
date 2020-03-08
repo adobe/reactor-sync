@@ -13,21 +13,22 @@ governing permissions and limitations under the License.
 const fs = require('fs');
 const readFile = require('./readFile');
 
-module.exports = async (path, args) => {
 
-  const reactor = args.reactor;
-
-  let stats;
-
+function checkStats(path) {
   try {
-    stats = fs.statSync(path);
+    // console.log('📛 path: ', path);
+    return fs.statSync(path);
   } catch (e) {
     throw Error(`${path} does not exist.`);
   }
+}
+
+module.exports = async (path, args) => {
+  const reactor = args.reactor;
+  const stats = checkStats(path);
 
   // make sure it is a directory
   if (stats.isDirectory()) {
-
     const dataPath = `${path}/data.json`;
     const settingsPath = `${path}/settings.json`;
 
@@ -59,7 +60,6 @@ module.exports = async (path, args) => {
         transforms = items.find((item) => (
           item.id === data.attributes.delegate_descriptor_id
         )).transforms;
-
       }
 
     // extensions
@@ -80,7 +80,6 @@ module.exports = async (path, args) => {
         ) {
           transforms = extensionPackage.attributes.configuration.transforms;
         }
-
       }
 
     // rule_components
@@ -125,7 +124,6 @@ module.exports = async (path, args) => {
         )).transforms;
 
       }
-
     }
 
     // first get the settings file
@@ -157,9 +155,7 @@ module.exports = async (path, args) => {
             // default if it doesn't already exist and step into
             obj = obj[part] = (obj[part] || {});
           }
-
         }
-
       };
 
       files.forEach(function (file) {
@@ -221,12 +217,10 @@ module.exports = async (path, args) => {
             // TODO: Throw? 
           }
         }
-
       });
 
       // finally set it as a stringified value on the attributes object.
       data.attributes.settings = JSON.stringify(settings);
-    
     }
 
     return data;
@@ -234,5 +228,4 @@ module.exports = async (path, args) => {
   } else {
     throw Error(`${path} is not a directory.`);
   }
-
 };

@@ -12,11 +12,12 @@ governing permissions and limitations under the License.
 
 const fs = require('fs');
 const mkdirp = require('mkdirp');
+const { writeDataJson } = require('./writeResources');
 const sanitize = require('sanitize-filename');
 
 function checkCreateDir(localPath) {
   if (!fs.existsSync(localPath))
-    mkdirp(localPath);
+    mkdirp.sync(localPath);
 }
 
 function getLocalPath(data, args) {
@@ -49,13 +50,6 @@ function sanitizeLink(data, localDirectory) {
     makeSymLink(localDirectory, sanitizedName, data);
 }
 
-function writeDataJson(localPath, data) { 
-  fs.writeFileSync(
-    `${localPath}/data.json`,
-    JSON.stringify(data, null, '  ')
-  );
-}
-
 function getSettings(data, localPath) {
   let settings = JSON.parse(data.attributes.settings);
 
@@ -70,6 +64,7 @@ function getSettings(data, localPath) {
 
 async function toFiles(data, args) {
   const reactor = args.reactor;
+  console.log('👽 data: ', data);
   const { localPath, localDirectory } = getLocalPath(data, args);
 
   checkCreateDir(localPath);

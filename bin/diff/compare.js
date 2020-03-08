@@ -18,12 +18,13 @@ function getResult(resultType, details) {
   };
 }
 
-module.exports = (local, remote) => {
+module.exports = function compare(local, remote) {
   let same = true;
   let details = {};
   let localExists = local && local.attributes;
   let remoteExists = remote && remote.attributes;
 
+  // console.log('🔴 local: ', local.attributes.name);
 
   // if we have the local, but not the remote
   if (
@@ -46,7 +47,8 @@ module.exports = (local, remote) => {
     //   result: 'deleted'
     // };
     return {
-      result: 'behind'
+      // result: 'behind'
+      result: 'deleted'
     };
   }
 
@@ -78,7 +80,7 @@ module.exports = (local, remote) => {
       JSON.stringify(local.attributes[attribute]) !==
         JSON.stringify(remote.attributes[attribute])
     ) {
-      same = same && false;
+      same = false;
 
       // add some details
       details.attributes = details.attributes || {};
@@ -86,7 +88,6 @@ module.exports = (local, remote) => {
       details.attributes[attribute].local = local.attributes[attribute];
       details.attributes[attribute].remote = remote.attributes[attribute];
     }
-
   }
 
   // TODO: walk relationships as well and check whether they are different or not

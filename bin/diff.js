@@ -10,52 +10,10 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const fs = require('fs');
-const Reactor = require('@adobe/reactor-sdk').default;
-const getAccessToken = require('./utils/getAccessToken');
 const diffProperty = require('./diff/property');
+const setSettings = require('./utils/setSettings');
 
-module.exports = async (args) => {
-
-  const settingsPath = args.settingsPath || './.reactor-settings.json';
-
-  let settings;
-
-  // read the settings file.
-  if (fs.existsSync(settingsPath)) {
-    settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-  } else {
-    throw Error('Launch Sync settings file does not exist.');
-  }
-
-  // transfer settings
-  args.propertyId = settings.propertyId;
-  args.environment = settings.environment;
-  args.integration = settings.integration;
-
-  // get the access token
-  if (!args.accessToken) {
-    args.accessToken = await getAccessToken(settings);
-  }
-
-  const environment = args.environment;
-
-  // check to make sure that we have all of the information we need
-  if (!environment) {
-    throw Error('no "environment" property.');
-  }
-  if (!environment.reactorUrl) {
-    throw Error('no "environment.reactorUrl" property.');
-  }
-
-  if (!args.reactor) {
-    args.reactor = await new Reactor(args.accessToken, {
-      reactorUrl: environment.reactorUrl
-    });
-  }
-
-  // wait to run the diff on the property
-  const result = await diffProperty(args);
-
-  return result;
+module.exports = async function diff(args) {
+  const settings =  await setSettings(args);
+  return await diffProperty(settings);
 };

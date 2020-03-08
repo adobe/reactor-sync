@@ -18,6 +18,7 @@ const chalk = require('chalk');
 const diff = require('./diff');
 const sync = require('./sync');
 const pull = require('./pull');
+const push = require('./push');
 
 yargs
 .usage('Usage: $0 <command> [options]')
@@ -34,6 +35,13 @@ yargs
   const args = argv.argv;
 
   await pull(args);
+})
+// push (default)
+.command(['push', '$0'], 'Push resources changes to launch.adobe.com', async (argv) => {
+
+  const args = argv.argv;
+
+  await push(args);
 })
 // diff
 .command('diff', 'Diff what exists on the local file system with what exists in Adobe Launch.', async (argv) => {

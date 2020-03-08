@@ -1,4 +1,6 @@
 const fs = require('fs');
+const checkAccessToken = require('./getAccessToken');
+const getReactor = require('./getReactor');
 
 
 function checkSettings(args) {
@@ -26,4 +28,11 @@ function checkArgs(args) {
   return settings;
 }
 
-module.exports = checkArgs;
+async function setSettings(args) {
+  const settings = checkArgs(args);
+  settings.accessToken = await checkAccessToken(settings);
+  settings.reactor = await getReactor(settings);
+  return settings;
+}
+
+module.exports = setSettings;

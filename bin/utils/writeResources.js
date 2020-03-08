@@ -1,3 +1,4 @@
+const fs = require('fs');
 const toFiles = require('./toFiles');
 const toMethodName = require('./resourceName');
 const ruleComponentsName = 'rule_components';
@@ -49,6 +50,13 @@ function listResources(settings, resourceName, resourceType, resourceTypes) {
   );
 }
 
+function writeDataJson(localPath, data) { 
+  fs.writeFileSync(
+    `${localPath}/data.json`,
+    JSON.stringify(data, null, '  ')
+  );
+}
+
 function writeResources(resourceTypes, settings) {
   resourceTypes.forEach( (resourceType, index, resourceTypes) => {
     if (resourceType === ruleComponentsName) return;
@@ -62,4 +70,7 @@ function writeResources(resourceTypes, settings) {
   });
 }
 
-module.exports = writeResources;
+module.exports = {
+  writeResources,
+  writeDataJson
+};

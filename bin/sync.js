@@ -10,89 +10,42 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const checkAccessToken = require('./utils/getAccessToken');
-const getReactor = require('./utils/getReactor');
 const fromFile = require('./utils/fromFile');
 const toFiles = require('./utils/toFiles');
-const checkArgs = require('./utils/checkArgs');
+const setSettings = require('./utils/setSettings');
 const toMethodName = require('./utils/resourceName');
+const { crudResourceOr, isMethod } = require('./utils/resourceUtils');
 const diff = require('./diff');
 
 
-async function updateExtension(reactor, local) {
-  return (await reactor.updateExtension(
-    local.id,
-    { data: {
-      id: local.id,
-      type: local.type,
-      attributes: local.attributes,
-      relationships: local.relationships 
-    }})).data;
-}
-
-async function updateResource(reactor, local) {
-  const resourceName = toMethodName(local.type);
-  const update = (await reactor[`update${resourceName}`]({
-    id: local.id,
-    type: local.type,
-    attributes: local.attributes
-  })).data;
-  maybeRevise(resourceName, reactor, local);
-  return update;
-}
-
-async function updateExtensionOr(reactor, local) {
-  if (local.type === 'extensions') return await updateExtension(reactor, local);
-  return await updateResource(reactor, local);
-}
-
-async function maybeRevise(resourceName, reactor, local) {
-  if (resourceName === ('Extension' || 'DataElement'))
-    return await reactor[`revise${resourceName}`](local.id);
-}
-
 module.exports = async (args) => {
-  const settings = checkArgs(args);
-
-  settings.accessToken = await checkAccessToken(settings);
-  const reactor = await getReactor(settings);
-  const result = await diff(args);
-  // const shouldSyncSome = shouldSync(args);
+  const settings = await setSettings(args);
+  const result = await diff(settings);
 
   // added
   // for (const comparison of result.added) {
   //   // TODO: 
   // }
 
-  // modified
-  if (
-    !args.behind ||
-    args.modified
-  ) {
-
+  if (isMethod(args, 'modified')) {
     console.log('🔂 Syncing Modified.');
 
     for (const comparison of result.modified) {
       const local = await fromFile(comparison.path, args);
       // sync it
-      const updated = await updateExtensionOr(reactor, local);
+      const updated = await crudResourceOr(settings.reactor, 'update', local);
 
       // Persist the updated files back in the form it is supposed to look like:
       await toFiles(updated, args); 
     }
   }
 
-  // behind
-  if (
-    !args.modified ||
-    args.behind
-  ) {
-
+  if (isMethod(args, 'behind')) {
     console.log('↩️  Syncing behind.');
 
     for (const comparison of result.behind) {
       const resourceMethodName = toMethodName(comparison.type);
-      const updated = (await reactor[`get${resourceMethodName}`](comparison.id)).data;
+      const updated = (await settings.reactor[`get${resourceMethodName}`](comparison.id)).data;
       
       await toFiles(updated, args); 
     }
@@ -102,5 +55,4 @@ module.exports = async (args) => {
   // for (const comparison of result.unchanged) {
   //   // TODO: 
   // }
-
 };

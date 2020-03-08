@@ -11,15 +11,12 @@ governing permissions and limitations under the License.
 */
 
 const fs = require('fs');
-const ora = require('ora');
+const startSpinner = require('../utils/startSpinner');
 const fromFile = require('../utils/fromFile');
 const compare = require('./compare');
 
 module.exports = async (args, result) => {
-
-  const spinner = ora('Diffing Data Elements \n');
-  spinner.color = 'red';
-  spinner.start();
+  const spinner = startSpinner('Diffing Data Elements \n', 'red');
 
   result = result || {
     added: [],
@@ -46,7 +43,9 @@ module.exports = async (args, result) => {
   ).data;
 
   for (const file of files) {
-
+    // console.log('🔴 file: ', file);
+    // console.log('🔴 dataElementsPath: ', dataElementsPath);
+    // // console.log('🔴 files: ', files);
     // make sure we only deal with directories that start with DE
     if (!file.startsWith('DE')) {
       continue;
@@ -68,11 +67,9 @@ module.exports = async (args, result) => {
       path: localPath,
       details: comparison.details,
     });
-
   }
 
   for (const remote of remotes) {
-
     // we only want to sync things that haven't been handled above.
     // just the remotes that haven't even been created here
     if (!files.find((id) => (id === remote.id))) {
@@ -86,9 +83,7 @@ module.exports = async (args, result) => {
         path: `${dataElementsPath}/${remote.id}`,
         details: comparison.details,
       });
-
     }
-
   }
 
   spinner.stop();
