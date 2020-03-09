@@ -57,7 +57,7 @@ function writeDataJson(localPath, data) {
 }
 
 function getSettings(data, localPath) {
-  let settings = JSON.parse(data.attributes.settings);
+  const settings = JSON.parse(data.attributes.settings);
 
   if (settings) {
     fs.writeFileSync(

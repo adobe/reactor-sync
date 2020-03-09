@@ -14,7 +14,7 @@ governing permissions and limitations under the License.
 function getResult(resultType, details) {
   return {
     result: resultType,
-    details: details
+    details
   };
 }
 
@@ -23,7 +23,6 @@ module.exports = (local, remote) => {
   let details = {};
   let localExists = local && local.attributes;
   let remoteExists = remote && remote.attributes;
-
 
   // if we have the local, but not the remote
   if (
