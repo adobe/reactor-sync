@@ -13,7 +13,37 @@ governing permissions and limitations under the License.
 const fs = require('fs');
 const startSpinner = require('../utils/startSpinner');
 const fromFile = require('../utils/fromFile');
+// const toFiles = require('../utils/toFiles');
+// const deleteDirectory = require('../utils/deleteDirectory');
 const compare = require('./compare');
+
+function exitOnDupId(localIds, local) {
+  if (localIds.includes(local.id)) 
+    throw new Error(`A duplicate data_element ID value was found for ${local.attributes.name} - ${local.id}`);
+}
+
+function nameIdCheck(remotes, local, localPath, args) {
+  const remoteName = remotes.find((remote) => (local.attributes.name === remote.attributes.name));
+  // const remoteId = remotes.find((remote) => (local.id === remote.id));
+  if (local.id !== remoteName.id) {
+    throw new Error(`A data_element was found with the same name as a remote data_element but with a different ID value:
+
+     local: ${local.attributes.name} - ${local.id}
+     remote: ${remoteName.attributes.name} - ${remoteName.id}
+     
+     🚑 Please resolve manually and try again. `);
+    // TODO autofix
+    // deleteDirectory(localPath);
+    // toFiles(remoteName, args);
+    // compareAttributes();
+  }
+}
+
+function mismatchCheck(localIds, remotes, local) {
+  exitOnDupId(localIds, local);
+  nameIdCheck(remotes, local);
+  localIds.push(local.id);
+}
 
 module.exports = async (args, result) => {
   const spinner = startSpinner('Diffing Data Elements \n', 'red');
@@ -25,6 +55,7 @@ module.exports = async (args, result) => {
     behind: [],
     unchanged: [],
   };
+  const localIds = [];
 
   const propertyId = args.propertyId;
   const reactor = args.reactor;
@@ -45,8 +76,6 @@ module.exports = async (args, result) => {
   for (const file of files) {
     // console.log('🔴 file: ', file);
     // console.log('🔴 dataElementsPath: ', dataElementsPath);
-    // // console.log('🔴 files: ', files);
-    // make sure we only deal with directories that start with DE
     if (!file.startsWith('DE')) {
       continue;
     }
@@ -55,6 +84,7 @@ module.exports = async (args, result) => {
 
     // get the local object from file
     const local = await fromFile(localPath, args);
+    mismatchCheck(localIds, remotes, local);
     // get the object from launch
     const remote = remotes.find((remote) => (local.id === remote.id));
 
