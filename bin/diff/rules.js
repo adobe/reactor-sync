@@ -12,8 +12,8 @@ governing permissions and limitations under the License.
 
 const fs = require('fs');
 const startSpinner = require('../utils/startSpinner');
-const toMethodName = require('./utils/resourceName');
-const { setResult, mismatchCheck } = require('./utils/resourceUtils');
+const toMethodName = require('../utils/resourceName');
+const { setResult, mismatchCheck } = require('../utils/resourceUtils');
 const { checkCreateDir, listResources } = require('../utils/writeResources');
 const fromFile = require('../utils/fromFile');
 const compare = require('./compare');
