@@ -14,7 +14,7 @@ governing permissions and limitations under the License.
 function getResult(resultType, details) {
   return {
     result: resultType,
-    details: details
+    details
   };
 }
 
@@ -24,9 +24,6 @@ module.exports = function compare(local, remote) {
   let localExists = local && local.attributes;
   let remoteExists = remote && remote.attributes;
 
-  // console.log('🔴 local: ', local.attributes.name);
-
-  // if we have the local, but not the remote
   if (
     localExists && 
     !remoteExists
@@ -35,19 +32,11 @@ module.exports = function compare(local, remote) {
       result: 'added'
     };
   }
-
-  // if we have the remote, but not the local
   if (
     !localExists && 
     remoteExists
   ) {
-    // TODO: determine when this should be deleted or behind...
-    // TODO: deleted can best be accomplished with a: pull -> human change resulting in a diff -> push
-    // return {
-    //   result: 'deleted'
-    // };
     return {
-      // result: 'behind'
       result: 'deleted'
     };
   }

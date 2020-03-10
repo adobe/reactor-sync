@@ -14,13 +14,12 @@ const setSettings = require('./utils/setSettings');
 const fromFile = require('./utils/fromFile');
 const toFiles = require('./utils/toFiles');
 const toMethodName = require('./utils/resourceName');
-const { crudResourceOr, isMethod, saveResourceId } = require('./utils/resourceUtils');
+const { crudResourceOr, isMethod } = require('./utils/resourceUtils');
 const diff = require('./diff');
 
 
 async function push(args) {
   const settings = await setSettings(args);
-  // console.log('🔴 settings: ', settings);
   const result = await diff(args);
 
   if (isMethod(args, 'modified')) {
@@ -39,7 +38,6 @@ async function push(args) {
     for (const comparison of result.deleted) {
       if (comparison.type === 'rule_components') continue;
       const resourceMethodName = toMethodName(comparison.type, true);
-      // console.log('🔴 resourceMethodName: ', resourceMethodName);
       await settings.reactor[`delete${resourceMethodName}`](comparison.id);
     }
   }
@@ -48,16 +46,9 @@ async function push(args) {
     console.log('🆕 Pushing Added: ', result.added);
 
     for (const comparison of result.added) {
-      // const resourceMethodName = toMethodName(comparison.type, true);
-      // console.log('🔴 resourceMethodName: ', resourceMethodName);
       if (comparison.type === 'rule_components') continue;
       const local = await fromFile(comparison.path, settings);
       const added = await crudResourceOr(settings.reactor, 'create', local);
-      // console.log('💚 added: ', added);
-      // console.log('💚 local.relationships.property.data: ', local.relationships.property.data);
-      // // console.log('💚 settings: ', settings);
-      // const namedPath = `./${local.relationships.property.data.id}/${comparison.type}/_${local.attributes.name}`;
-      // saveResourceId(namedPath, added, settings);
       if (added) await toFiles(added, settings);
     }
   }

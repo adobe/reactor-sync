@@ -12,79 +12,38 @@ governing permissions and limitations under the License.
 
 const fs = require('fs');
 const startSpinner = require('../utils/startSpinner');
+const toMethodName = require('./utils/resourceName');
+const { setResult, mismatchCheck } = require('./utils/resourceUtils');
+const { checkCreateDir, listResources } = require('../utils/writeResources');
 const fromFile = require('../utils/fromFile');
-// const toFiles = require('../utils/toFiles');
-// const deleteDirectory = require('../utils/deleteDirectory');
 const compare = require('./compare');
 
-function exitOnDupId(localIds, local) {
-  if (localIds.includes(local.id)) 
-    throw new Error(`A duplicate data_element ID value was found for ${local.attributes.name} - ${local.id}`);
-}
-
-function nameIdCheck(remotes, local, localPath, args) {
-  const remoteName = remotes.find((remote) => (local.attributes.name === remote.attributes.name));
-  // const remoteId = remotes.find((remote) => (local.id === remote.id));
-  if (local.id !== remoteName.id) {
-    throw new Error(`A data_element was found with the same name as a remote data_element but with a different ID value:
-
-     local: ${local.attributes.name} - ${local.id}
-     remote: ${remoteName.attributes.name} - ${remoteName.id}
-     
-     🚑 Please resolve manually and try again. `);
-    // TODO autofix
-    // deleteDirectory(localPath);
-    // toFiles(remoteName, args);
-    // compareAttributes();
-  }
-}
-
-function mismatchCheck(localIds, remotes, local) {
-  exitOnDupId(localIds, local);
-  nameIdCheck(remotes, local);
-  localIds.push(local.id);
-}
 
 module.exports = async (args, result) => {
   const spinner = startSpinner('Diffing Data Elements \n', 'red');
 
-  result = result || {
-    added: [],
-    modified: [],
-    deleted: [],
-    behind: [],
-    unchanged: [],
-  };
-  const localIds = [];
+  result = setResult(result);
 
-  const propertyId = args.propertyId;
-  const reactor = args.reactor;
-  const propertyPath = `./${propertyId}`;
-  const dataElementsPath = `${propertyPath}/data_elements`;
+  const localIds = [];
+  const propertyName = args.propertyName;
+  const resoureType = 'data_elements';
+  const propertyPath = `./_${propertyName}`;
+  const dataElementsPath = `${propertyPath}/${resoureType}`;
+  const methodName = toMethodName(resoureType);
 
   // get all of the local files
+  checkCreateDir(dataElementsPath);
   const files = fs.readdirSync(dataElementsPath);
 
-  // get all of the remote objects
   // TODO: go back through and refactor this to get everything...not just 999
-  const remotes = (
-    await reactor.listDataElementsForProperty(args.propertyId, {
-      'page[size]': 999
-    })
-  ).data;
+  const remotes = listResources(methodName, args);
 
   for (const file of files) {
-    // console.log('🔴 file: ', file);
-    // console.log('🔴 dataElementsPath: ', dataElementsPath);
-    if (!file.startsWith('DE')) {
-      continue;
-    }
+    if (file.startsWith('DE')) continue;
 
     const localPath = `${dataElementsPath}/${file}`;
-
-    // get the local object from file
     const local = await fromFile(localPath, args);
-    mismatchCheck(localIds, remotes, local);
+    mismatchCheck(localIds, remotes, local, localPath, args);
     // get the object from launch
     const remote = remotes.find((remote) => (local.id === remote.id));
 

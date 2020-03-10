@@ -11,51 +11,42 @@ governing permissions and limitations under the License.
 */
 
 const fs = require('fs');
-const ora = require('ora');
+const startSpinner = require('../utils/startSpinner');
+const toMethodName = require('./utils/resourceName');
+const { setResult, mismatchCheck } = require('./utils/resourceUtils');
+const { checkCreateDir, listResources } = require('../utils/writeResources');
 const fromFile = require('../utils/fromFile');
 const compare = require('./compare');
 
+
 module.exports = async (args, result) => {
+  const spinner = startSpinner('Diffing Extensions \n', 'magenta');
 
-  const spinner = ora('Diffing Extensions \n');
-  spinner.color = 'magenta';
-  spinner.start();
+  result = setResult(result);
 
-  result = result || {
-    added: [],
-    modified: [],
-    deleted: [],
-    behind: [],
-    unchanged: [],
-  };
-  const propertyId = args.propertyId;
-  const reactor = args.reactor;
-
-  const propertyPath = `./${propertyId}`;
-  const extensionsPath = `${propertyPath}/extensions`;
+  const localIds = [];
+  const propertyName = args.propertyName;
+  const resoureType = 'extensions';
+  const propertyPath = `./_${propertyName}`;
+  const extensionsPath = `${propertyPath}/${resoureType}`;
+  const methodName = toMethodName(resoureType);
 
   // get all of the local files
+  checkCreateDir(extensionsPath);
   const files = fs.readdirSync(extensionsPath);
 
   // get all of the remote objects
   // TODO: go back through and refactor this to get everything...not just 999
-  const remotes = (
-    await reactor.listExtensionsForProperty(args.propertyId, {
-      'page[size]': 999
-    })
-  ).data;
+  const remotes = listResources(methodName, args);
 
   for (const file of files) {
 
     // make sure we only deal with directories that start with DE
-    if (!file.startsWith('EX')) {
-      continue;
-    }
+    if (!file.startsWith('EX')) continue;
 
     const localPath = `${extensionsPath}/${file}`;
-
-    // get the local object from file
     const local = await fromFile(localPath, args);
+    mismatchCheck(localIds, remotes, local, localPath, args);
     // get the object from launch
     const remote = remotes.find((remote) => (local.id === remote.id));
 
@@ -72,7 +63,6 @@ module.exports = async (args, result) => {
   }
 
   for (const remote of remotes) {
-
     // we only want to sync things that haven't been handled above.
     // just the remotes that haven't even been created here
     if (!files.find((id) => (id === remote.id))) {
@@ -86,9 +76,7 @@ module.exports = async (args, result) => {
         path: `${extensionsPath}/${remote.id}`,
         details: comparison.details,
       });
-
     }
-
   }
 
   spinner.stop();

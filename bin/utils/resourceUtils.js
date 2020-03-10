@@ -1,6 +1,7 @@
-const fromFile = require('./fromFile');
-const { writeDataJson } = require('./writeResources');
 const toMethodName = require('./resourceName');
+const toFiles = require('../utils/toFiles');
+const deleteDirectory = require('../utils/deleteDirectory');
+const pleaseResolveManually = '🚑 Please resolve manually and try again.';
 
 
 async function crudExtension(reactor, method, local) {
@@ -14,36 +15,19 @@ async function crudExtension(reactor, method, local) {
     }})).data;
 }
 
-async function saveResourceId(namedPath, createResponse, settings) {
-  // console.log('⚫️ settings: ', settings);
-  const namedResource = await fromFile(namedPath, settings);
-  namedResource.id = createResponse.id;
-  writeDataJson(namedPath, namedResource);
-}
-
-
 async function createResource(reactor, resourceName, local) {
-  // console.log('💚 local.property: ', local.relationships.property.data.id);
-  // console.log('💚 local.name: ', local.attributes.name);
   const createResponse = await reactor[`create${resourceName}`](
-  // return (await reactor[`create${resourceName}`](
     local.relationships.property.data.id,
     { id: local.id,
       type: local.type,
       attributes: local.attributes,
-      relationships: local.relationships
-    // }).catch(error => console.error(`create${resourceName}() error: ${error}`))
-    // ).data;
+      relationships: local.relationships 
     }).catch(error => { 
     console.error(`🚨 Failed to create${resourceName}() in createResource(): ${error}`);
     console.error('Tried to create with this: ', local);
   });
-    // }).catch(() => '');
-  console.log('💚 createResponse: ', createResponse);
-  console.log('💚 resourceName: ', resourceName);
   if (createResponse && createResponse.data)
     return createResponse.data;
-  // console.error('🚨No createResponse.data from createResource(). Tried to create with this: ', local);
   return false;
 }
 
@@ -64,16 +48,14 @@ async function createOrUpdate(reactor, method, resourceName, local) {
 
 async function crudResource(reactor, method, local) {
   const resourceName = toMethodName(local.type, true);
-  // console.log(`💚 ${method}${resourceName}`);
   const update = await createOrUpdate(reactor, method, resourceName, local);
-  console.log('💚 update: ', update);
   maybeRevise(resourceName, reactor, local);
   return update;
 }
 
 async function crudResourceOr(reactor, method, local) {
-  // if (local.type === 'rule_components') return await crudRuleComponent(reactor, method, local);
-  if (local.type === 'extensions') return await crudExtension(reactor, method, local);
+  if (local.type === 'extensions' && method !== 'create') 
+    return await crudExtension(reactor, method, local);
   return await crudResource(reactor, method, local);
 }
 
@@ -88,8 +70,64 @@ function isMethod(args, method) {
     args[`${method}`];
 }
 
+function exitOnDupId(localIds, local) {
+  if (localIds.includes(local.id)) 
+    throw new Error(`
+A duplicate data_element ID value was found for ${local.attributes.name} - ${local.id}
+    
+${pleaseResolveManually}`);
+}
+
+function compareAttributes(local, remote) {
+  return JSON.stringify(local.attributes.settings) !==
+  JSON.stringify(remote.attributes.settings);
+}
+
+async function saveRemoteId(localPath, remoteName, args) {
+  deleteDirectory(localPath);
+  await toFiles(remoteName, args);
+}
+
+function attributeMismatchError(local, remoteName) {
+  throw new Error(`A data_element was found with the same name as a remote data_element but with a different ID value:
+
+     local: ${local.attributes.name} - ${local.id}
+     remote: ${remoteName.attributes.name} - ${remoteName.id}
+     
+${pleaseResolveManually}`);
+}
+
+function nameIdCheck(remotes, local, localPath, args) {
+  const remoteName = remotes.find((remote) => (local.attributes.name === remote.attributes.name));
+
+  if (!remoteName) return;
+  if (local.id !== remoteName.id) {
+    if (compareAttributes(local, remoteName))
+      return attributeMismatchError(local, remoteName);
+    
+    saveRemoteId(localPath, remoteName, args);
+  }
+}
+
+function mismatchCheck(localIds, remotes, local, localPath, args) {
+  exitOnDupId(localIds, local);
+  nameIdCheck(remotes, local, localPath, args);
+  localIds.push(local.id);
+}
+
+function setResult(inResult) {
+  return inResult || {
+    added: [],
+    modified: [],
+    deleted: [],
+    behind: [],
+    unchanged: [],
+  };
+}
+
 module.exports = {
-  saveResourceId,
+  setResult,
+  mismatchCheck,
   crudResourceOr,
   maybeRevise,
   isMethod

@@ -11,51 +11,40 @@ governing permissions and limitations under the License.
 */
 
 const fs = require('fs');
-const ora = require('ora');
+const startSpinner = require('../utils/startSpinner');
+const toMethodName = require('./utils/resourceName');
+const { setResult, mismatchCheck } = require('./utils/resourceUtils');
+const { checkCreateDir, listResources } = require('../utils/writeResources');
 const fromFile = require('../utils/fromFile');
 const compare = require('./compare');
 
+
 module.exports = async (args, result) => {
+  const spinner = startSpinner('Diffing Rules \n', 'blue');
 
-  const spinner = ora('Diffing Rules \n');
-  spinner.color = 'blue';
-  spinner.start();
+  result = setResult(result);
 
-  result = result || {
-    added: [],
-    modified: [],
-    deleted: [],
-    behind: [],
-    unchanged: [],
-  };
-  const propertyId = args.propertyId;
-  const reactor = args.reactor;
-
-  const propertyPath = `./${propertyId}`;
-  const rulesPath = `${propertyPath}/rules`;
+  const localIds = [];
+  const propertyName = args.propertyName;
+  const resoureType = 'rules';
+  const propertyPath = `./_${propertyName}`;
+  const rulesPath = `${propertyPath}/${resoureType}`;
+  const methodName = toMethodName(resoureType);
 
   // get all of the local files
+  checkCreateDir(rulesPath);
   const files = fs.readdirSync(rulesPath);
 
   // get all of the remote objects
   // TODO: go back through and refactor this to get everything...not just 999
-  const remotes = (
-    await reactor.listRulesForProperty(args.propertyId, {
-      'page[size]': 999
-    })
-  ).data;
+  const remotes = listResources(methodName, args);
 
   for (const file of files) {
-
-    // make sure we only deal with directories that start with DE
-    if (!file.startsWith('RL')) {
-      continue;
-    }
+    if (!file.startsWith('RL')) continue;
 
     const localPath = `${rulesPath}/${file}`;
-
-    // get the local object from file
     const local = await fromFile(localPath, args);
+    mismatchCheck(localIds, remotes, local, localPath, args);
     // get the object from launch
     const remote = remotes.find((remote) => (local.id === remote.id));
 
@@ -68,11 +57,9 @@ module.exports = async (args, result) => {
       path: localPath,
       details: comparison.details,
     });
-
   }
 
   for (const remote of remotes) {
-
     // we only want to sync things that haven't been handled above.
     // just the remotes that haven't even been created here
     if (!files.find((id) => (id === remote.id))) {
@@ -86,9 +73,7 @@ module.exports = async (args, result) => {
         path: `${rulesPath}/${remote.id}`,
         details: comparison.details,
       });
-
     }
-
   }
 
   spinner.stop();

@@ -11,12 +11,12 @@ governing permissions and limitations under the License.
 */
 
 const fs = require('fs');
+const { checkCreateDir } = require('./writeResources');
 const readFile = require('./readFile');
 
 
 function checkStats(path) {
   try {
-    // console.log('📛 path: ', path);
     return fs.statSync(path);
   } catch (e) {
     throw Error(`${path} does not exist.`);
@@ -25,6 +25,7 @@ function checkStats(path) {
 
 module.exports = async (path, args) => {
   const reactor = args.reactor;
+  checkCreateDir(path);
   const stats = checkStats(path);
 
   // make sure it is a directory

@@ -50,21 +50,16 @@ module.exports = async (args) => {
   await Promise.all([
     // diff data elements
     diffDataElements(args, result),
-    // diffDataElements(args, result).catch(error => console.error(`📛 ${error}`)),
     // diff data elements
-    diffEnvironments(args, result),
-    // diffEnvironments(args, result).catch(error => console.error(`📛 ${error}`)),
+    // diffEnvironments(args, result),
     // diff data elements
     diffExtensions(args, result),
-    // diffExtensions(args, result).catch(error => console.error(`📛 ${error}`)),
     // diff data elements
-    diffRules(args, result),
-    // diffRules(args, result).catch(error => console.error(`📛 ${error}`)),
+    // diffRules(args, result),
     // diff data elements
-    diffRuleComponents(args, result),
-    // diffRuleComponents(args, result).catch(error => console.error(`📛 ${error}`)),
-  // ]);
-  ]).catch(error => console.error(`📛 ${error}`));
+    // diffRuleComponents(args, result),
+  ]);
+  // ]).catch(error => console.error(`📛 ${error}`));
 
   return result;
 };

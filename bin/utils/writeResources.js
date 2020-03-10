@@ -1,4 +1,5 @@
 const fs = require('fs');
+const mkdirp = require('mkdirp');
 const toFiles = require('./toFiles');
 const toMethodName = require('./resourceName');
 const ruleComponentsName = 'rule_components';
@@ -11,6 +12,12 @@ function formArgs(resourceType, args) {
     propertyPath: `./${args.propertyId}`,
     dataElementsPath: `${args.propertyId}/${resourceType}`
   };
+}
+
+async function listResources(resourceName, args) {
+  return (
+    await args.reactor[`list${resourceName}ForProperty`](args.propertyId, pages)
+  ).data;
 }
 
 function writeRemaining(data, resourceType, settings) {
@@ -43,7 +50,7 @@ function writeAll(resourceTypes, resourceType, adobeResources, settings) {
   writeRemaining(adobeResources, resourceType, settings);
 }
 
-function listResources(settings, resourceName, resourceType, resourceTypes) {
+function listAndWrite(settings, resourceName, resourceType, resourceTypes) {
   settings.reactor[`${getPropertyOr(resourceName)}`](settings.propertyId, pages)
   .then(({ data: adobeResources }) => 
     writeAll(resourceTypes, resourceType, adobeResources, settings)
@@ -57,13 +64,18 @@ function writeDataJson(localPath, data) {
   );
 }
 
+function checkCreateDir(localPath) {
+  if (!fs.existsSync(localPath))
+    mkdirp.sync(localPath);
+}
+
 function writeResources(resourceTypes, settings) {
   resourceTypes.forEach( (resourceType, index, resourceTypes) => {
     if (resourceType === ruleComponentsName) return;
     const resourceName = toMethodName(resourceType, false);
       
     try {
-      return listResources(settings, resourceName, resourceType, resourceTypes);
+      return listAndWrite(settings, resourceName, resourceType, resourceTypes);
     } catch (error) {
       console.error('🚨Error in writeResources(): ', error);
     }
@@ -71,6 +83,8 @@ function writeResources(resourceTypes, settings) {
 }
 
 module.exports = {
+  listResources,
   writeResources,
+  checkCreateDir,
   writeDataJson
 };

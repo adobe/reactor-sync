@@ -11,46 +11,41 @@ governing permissions and limitations under the License.
 */
 
 const fs = require('fs');
-const ora = require('ora');
+const startSpinner = require('../utils/startSpinner');
+const toMethodName = require('./utils/resourceName');
+const { setResult, mismatchCheck } = require('./utils/resourceUtils');
+const { checkCreateDir, listResources } = require('../utils/writeResources');
 const fromFile = require('../utils/fromFile');
 const compare = require('./compare');
 
+
 module.exports = async (args, result) => {
+  const spinner = startSpinner('Diffing Rule Components \n', 'green');
 
-  const spinner = ora('Diffing Rule Components \n');
-  spinner.color = 'green';
-  spinner.start();
+  result = setResult(result);
 
-  result = result || {
-    added: [],
-    modified: [],
-    deleted: [],
-    behind: [],
-    unchanged: [],
-  };
-  const propertyId = args.propertyId;
-  const reactor = args.reactor;
-
-  const propertyPath = `./${propertyId}`;
-  const ruleComponentsPath = `${propertyPath}/rule_components`;
+  const localIds = [];
+  const propertyName = args.propertyName;
+  const resoureType = 'rule_components';
+  const propertyPath = `./_${propertyName}`;
+  const ruleComponentsPath = `${propertyPath}/${resoureType}`;
+  const methodName = toMethodName(resoureType);
 
   // get all of the local files
+  checkCreateDir(ruleComponentsPath);
   const files = fs.readdirSync(ruleComponentsPath);
 
   // get all of the remote objects
   // TODO: go back through and refactor this to get everything...not just 999
-  const rules = (
-    await reactor.listRulesForProperty(args.propertyId, {
-      'page[size]': 999
-    })
-  ).data;
+  const rules = listResources(methodName, args);
+
   // const ruleComponents = await property.getRuleComponents();
   let remotes = [];
   let remotesPromises = [];
   for (let rule of rules) {
 
     remotesPromises.push(
-      reactor.listRuleComponentsForRule(rule.id, {
+      args.reactor.listRuleComponentsForRule(rule.id, {
         'page[size]': 999
       })
       .then((response) => {
@@ -77,6 +72,7 @@ module.exports = async (args, result) => {
 
     // get the local object from file
     const local = await fromFile(localPath, args);
+    mismatchCheck(localIds, remotes, local, localPath, args);
     // get the object from launch
     const remote = remotes.find((remote) => (local.id === remote.id));
 
