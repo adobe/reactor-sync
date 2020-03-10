@@ -48,18 +48,12 @@ module.exports = async (args) => {
   });
 
   await Promise.all([
-    // diff data elements
     diffDataElements(args, result),
-    // diff data elements
-    // diffEnvironments(args, result),
-    // diff data elements
+    diffEnvironments(args, result),
     diffExtensions(args, result),
-    // diff data elements
-    // diffRules(args, result),
-    // diff data elements
-    // diffRuleComponents(args, result),
-  ]);
-  // ]).catch(error => console.error(`📛 ${error}`));
+    diffRules(args, result),
+    diffRuleComponents(args, result),
+  ]).catch(error => console.error(`📛 ${error}`));
 
   return result;
 };
