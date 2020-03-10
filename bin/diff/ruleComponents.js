@@ -37,7 +37,7 @@ module.exports = async (args, result) => {
 
   // get all of the remote objects
   // TODO: go back through and refactor this to get everything...not just 999
-  const rules = listResources(methodName, args);
+  const rules = await listResources(methodName, args);
 
   // const ruleComponents = await property.getRuleComponents();
   let remotes = [];

@@ -36,7 +36,7 @@ module.exports = async (args, result) => {
   const files = fs.readdirSync(environmentsPath);
 
   // TODO: go back through and refactor this to get everything...not just 999
-  const remotes = listResources(methodName, args);
+  const remotes = await listResources(methodName, args);
 
   for (const file of files) {
     if (file.startsWith('EN')) continue;

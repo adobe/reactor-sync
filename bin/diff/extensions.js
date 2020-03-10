@@ -37,7 +37,7 @@ module.exports = async (args, result) => {
 
   // get all of the remote objects
   // TODO: go back through and refactor this to get everything...not just 999
-  const remotes = listResources(methodName, args);
+  const remotes = await listResources(methodName, args);
 
   for (const file of files) {
 
