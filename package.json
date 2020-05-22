@@ -27,6 +27,7 @@
     "@adobe/reactor-sdk": "^1.0.6",
     "chalk": "^2.4.2",
     "jwt-simple": "^0.5.6",
+    "mkdirp": "^1.0.3",
     "ora": "^3.4.0",
     "request": "^2.88.0",
     "request-debug": "^0.2.0",

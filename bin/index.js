@@ -12,27 +12,27 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-
 const yargs = require('yargs');
 const chalk = require('chalk');
 const diff = require('./diff');
 const sync = require('./sync');
+const pull = require('./pull');
 
 yargs
 .usage('Usage: $0 <command> [options]')
-// TODO: Should I have both a "push" command and a "pull" command?
 // sync (default)
 .command(['sync', '$0'], 'Run a diff on the local file system and Adobe Launch and then sync.', async (argv) => {
-
   const args = argv.argv;
-
   await sync(args);
+})
+// pull (default)
+.command(['pull', '$0'], 'Pull down all resources and write them as JSON locally.', async (argv) => {
+  const args = argv.argv;
+  await pull(args);
 })
 // diff
 .command('diff', 'Diff what exists on the local file system with what exists in Adobe Launch.', async (argv) => {
-
   const args = argv.argv;
-  
   const result = await diff(args);
 
   console.log(chalk.green.bold(`Added (${result.added.length}) ------------------------------------------------------------`));
