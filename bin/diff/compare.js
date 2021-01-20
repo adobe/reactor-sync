@@ -24,6 +24,7 @@ module.exports = function compare(local, remote) {
   let localExists = local && local.attributes;
   let remoteExists = remote && remote.attributes;
 
+  // if we have the local, but not the remote
   if (
     localExists && 
     !remoteExists
