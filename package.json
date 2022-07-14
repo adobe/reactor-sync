@@ -1,9 +1,9 @@
 {
   "name": "@adobe/reactor-sync",
   "version": "0.1.0",
-  "description": "Command line tool for syncing data to and from Adobe Launch to a local directory.",
+  "description": "Command line tool for syncing data to and from Adobe Experience Platform Tags to a local directory.",
   "author": {
-    "name": "Adobe Systems",
+    "name": "Adobe",
     "url": "http://adobe.com",
     "email": "bbythewa@adobe.com"
   },
